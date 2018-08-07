@@ -1,4 +1,4 @@
-from flask import Flask, render_template, redirect, url_for, request, flash
+from flask import Flask, render_template, redirect, url_for, request
 from flask_bootstrap import Bootstrap
 from flask_sqlalchemy import SQLAlchemy
 from sqlalchemy.exc import IntegrityError
@@ -63,16 +63,17 @@ def signup():
     error = None
     if request.method == "POST":
         if form.validate_on_submit():
-            try:
+            if User.query.filter_by(username=form.username.data).first():
+                error = "Username ({}) already exists.".format(form.username.data)
+            elif User.query.filter_by(email=form.email.data).first():
+                error = "Email ({}) already exists.".format(form.email.data)
+            else:
                 hashed_password = generate_password_hash(form.password.data, method='sha256')
                 new_user = User(username=form.username.data, email=form.email.data, password=hashed_password)
                 db.session.add(new_user)
                 db.session.commit()
                 login_user(new_user)
                 return redirect(url_for('index'))
-            except IntegrityError:
-                db.session.rollback()
-                error = 'Username ({0}) OR Email ({1}) already exists.'.format(form.username.data, form.email.data)
     return render_template('signup.html', form=form, error=error)
 
 
