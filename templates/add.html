@@ -28,32 +28,31 @@
     <div class="container">
       <div class="row">
         <div class="col-lg-8 col-md-10 mx-auto">
-          <form name="sentMessage" id="contactForm" novalidate>
+          <form method="POST" name="addForm" id="addForm" action="{{ url_for('addpost') }}" onsubmit="return validate_form();">
             <div class="control-group">
               <div class="form-group floating-label-form-group controls">
                 <label>Title</label>
-                <input type="text" class="form-control" placeholder="Title" id="title" name="title" required data-validation-required-message="Please enter your title.">
+                <input type="text" class="form-control" placeholder="Title" id="title" name="title">
                 <p class="help-block text-danger"></p>
               </div>
             </div>
             <div class="control-group">
               <div class="form-group floating-label-form-group controls">
                 <label>Sub Title</label>
-                <input type="text" class="form-control" placeholder="Sub Title" id="sub_title" name="sub_title" required data-validation-required-message="Please enter your subtitle.">
-                <p class="help-block text-danger"></p>
+                <input type="text" class="form-control" placeholder="Sub Title" id="sub_title" name="sub_title">
               </div>
             </div>
             <div class="control-group">
               <div class="form-group col-xs-12 floating-label-form-group controls">
                 <label>Author</label>
-                <input type="text" class="form-control" placeholder="Author" id="author" name ="author" required data-validation-required-message="Please enter author name.">
+                <input type="text" class="form-control" placeholder="Author" id="author" name ="author">
                 <p class="help-block text-danger"></p>
               </div>
             </div>
             <div class="control-group">
               <div class="form-group floating-label-form-group controls">
                 <label>Content</label>
-                <textarea rows="5" class="form-control" placeholder="Content" id="content" name="content" required data-validation-required-message="Please enter a content."></textarea>
+                <textarea rows="5" class="form-control" placeholder="Content" id="content" name="content"></textarea>
                 <p class="help-block text-danger"></p>
               </div>
             </div>
@@ -67,3 +66,34 @@
       </div>
     </div>
 {% endblock content %}
+
+{% block javascript %}
+    <script type="text/javascript">
+    function validate_form (event)
+    {
+        if (document.addForm.title.value == "" )
+        {
+            alert ( "Please enter title." );
+            return false;
+        }
+        if ( document.addForm.sub_title.value == "" )
+        {
+            alert ( "Please enter sub-title." );
+            return false;
+        }
+        if ( document.addForm.author.value == "" )
+        {
+            alert ( "Please enter author name." );
+            return false;
+        }
+        if ( document.addForm.content.value == "" )
+        {
+            alert ( "Please enter body content." );
+            return false;
+        }
+        console.log(94, event);
+        return true;
+    }
+
+</script>
+{% endblock %}
