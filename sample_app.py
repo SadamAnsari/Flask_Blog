@@ -9,15 +9,14 @@ from datetime import datetime
 from flask_login import LoginManager, UserMixin, login_user, login_required, logout_user, current_user
 from werkzeug.security import generate_password_hash, check_password_hash
 from forms import LoginForm, RegisterForm
-from api_token import (CLIENT_ID, CLIENT_SECRET)
 
 basedir = os.path.abspath(os.path.dirname(__file__))
 
 app = Flask(__name__)
 app.secret_key = "supersecret!"
 blueprint = make_google_blueprint(
-    client_id=CLIENT_ID,
-    client_secret=CLIENT_SECRET,
+    client_id= "{{ CLIENT_ID }}",
+    client_secret="{{ CLIENT_SECRET }}",
     scope=["profile", "email"]
 )
 app.config['SQLALCHEMY_DATABASE_URI'] = 'sqlite:///' + os.path.join(basedir, "test.sqlite3")
