@@ -10,13 +10,15 @@ from datetime import datetime
 from werkzeug.security import generate_password_hash, check_password_hash
 from flask_login import LoginManager, UserMixin, login_user, login_required, logout_user, current_user
 from forms import LoginForm, RegisterForm
+from api_token import CLIENT_ID, CLIENT_SECRET
 
 app = Flask(__name__)
 app.config['SQLALCHEMY_DATABASE_URI'] = 'sqlite:///myblog.sqlite3'
 # app.config['SQLALCHEMY_TRACK_MODIFICATIONS'] = False
 app.config['SECRET_KEY'] = 'S3CR3TK3Y!'
-app.config['GOOGLE_CLIENT_ID'] = ''
-app.config['GOOGLE_CLIENT_SECRET'] = ''
+app.config['GOOGLE_CLIENT_ID'] = CLIENT_ID
+app.config['GOOGLE_CLIENT_SECRET'] = CLIENT_SECRET
+os.environ['OAUTHLIB_INSECURE_TRANSPORT'] = '1'
 os.environ['OAUTHLIB_INSECURE_TRANSPORT'] = '1'
 bootstrap = Bootstrap(app)
 
@@ -27,23 +29,33 @@ login_manager.login_view = 'login'
 
 
 class User(UserMixin, db.Model):
+    __tablename__ = "users"
+
     id = db.Column(db.Integer, primary_key=True)
     username = db.Column(db.String(15), unique=True)
     email = db.Column(db.String(50), unique=True)
     password = db.Column(db.String(80))
     posts = db.relationship('BlogPost', backref='user', lazy=True)
-    oauth_id = db.relationship('OauthUser', uselist=False)
+    oauth_id = db.relationship("AuthUser", uselist=False, back_populates="User")
 
 
-class OauthUser(UserMixin, db.Model):
+class AuthUser(db.Model):
+    __tablename__ = "auth_users"
+
     id = db.Column(db.Integer, primary_key=True)
-    username = db.Column(db.String(15), unique=True)
-    email = db.Column(db.String(50), unique=True)
-    password = db.Column(db.String(80))
-    user_id = db.Column(db.Integer, db.ForeignKey('user.id'))
+    email = db.Column(db.String(100), unique=True, nullable=False)
+    name = db.Column(db.String(100), nullable=True)
+    avatar = db.Column(db.String(200))
+    active = db.Column(db.Boolean, default=False)
+    tokens = db.Column(db.Text)
+    created_at = db.Column(db.DateTime, default=datetime.utcnow())
+    user_id = db.Column(db.Integer, db.ForeignKey('User.id'))
+    user = db.relationship("User", back_populates="AuthUser")
 
 
 class BlogPost(db.Model):
+    __tablename__ = "blog_posts"
+
     id = db.Column(db.Integer, primary_key=True)
     title = db.Column(db.String(50))
     sub_title = db.Column(db.String(50))
@@ -67,7 +79,7 @@ def login_oauth_user():
             password = 'GoogleUserLogin1234'
             user_id = user_info.get('id')
             hashed_password = generate_password_hash(password, method='sha256')
-            new_user = OauthUser(username=name, email=email, password=hashed_password, user_id=user_id)
+            new_user = User(username=name, email=email, password=hashed_password, oauth_id=user_id)
             db.session.add(new_user)
             db.session.commit()
             login_user(new_user)
@@ -116,15 +128,20 @@ def signup():
 @login_required
 def logout():
     logout_user()
+    print(112, session)
+    if 'user_login' in session:
+        del session['user_login']
     return redirect(url_for('index'))
 
 
 @app.route('/')
 def index():
     posts = BlogPost.query.order_by(BlogPost.date_posted.desc()).all()
-    if current_user.is_authenticated:
-        # print("current_user", current_user.__dict__)
-        return render_template("dashboard.html", user=current_user, posts=posts)
+    print(session)
+    if 'user_login' not in session:
+        if current_user.is_authenticated:
+            # print("current_user", current_user.__dict__)
+            return render_template("dashboard.html", user=current_user, posts=posts)
     else:
         return render_template("index.html", posts=posts)
 
@@ -247,8 +264,10 @@ def auth(action):
     flash('Logged in', 'success')
     print(227, session)
     if action == 'login':
-        login_oauth_user()
-    return redirect(session['next'])
+        if not session.get('user_login'):
+            login_oauth_user()
+        session['user_login'] = True
+    return redirect(url_for('index'))
 
 
 if __name__ == '__main__':
